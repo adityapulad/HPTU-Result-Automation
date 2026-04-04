@@ -2,11 +2,11 @@
   "version": 2,
   "functions": {
     "api/links.py": {
-      "runtime": "python3.12",
+      "runtime": "vercel-python@4.x",
       "maxDuration": 10
     },
     "api/result.py": {
-      "runtime": "python3.12",
+      "runtime": "vercel-python@4.x",
       "maxDuration": 10
     }
   },
