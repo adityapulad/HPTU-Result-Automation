@@ -1,10 +1,10 @@
 @echo off
-title HPTU Result Automation
+title Result compiler
 color 0B
 
 echo.
 echo  ============================================
-echo    HPTU Result Automation - B.Tech Exporter
+echo    Result compiler - B.Tech Exporter
 echo  ============================================
 echo.
 echo  Starting backend server...

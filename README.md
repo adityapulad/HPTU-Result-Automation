@@ -1,4 +1,4 @@
-# HPTU Result Automation 🎓
+# Result compiler 🎓
 
 A web app that lets students fetch B.Tech exam results from the HPTU portal and download them as a styled Excel file — no installs needed.
 

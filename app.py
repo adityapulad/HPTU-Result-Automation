@@ -1,5 +1,5 @@
 """
-HPTU Result Automation - Flask Backend
+Result compiler - Flask Backend
 Scrapes B.Tech results from indiaresults.com portal and exports to Excel.
 """
 
