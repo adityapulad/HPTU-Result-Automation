@@ -320,6 +320,29 @@ function generateExcel(results, examTitle) {
   if (!XLSX) { showToast('Excel library not loaded. Try refreshing.', 'error'); return; }
 
   const normalize = (v) => String(v || '').trim().replace(/\s+/g, ' ').toUpperCase();
+  const gradeTokens = new Set([
+    'O', 'A+', 'A', 'B+', 'B', 'C', 'P', 'Q', 'R', 'F', 'ABSENT',
+    'GRADE', 'GRADES', 'GRADE POINT', 'GRADE POINTS',
+  ]);
+  const isGradeLikeToken = (v) => gradeTokens.has(normalize(v));
+  const isRealSubjectEntry = (s) => {
+    const codeRaw = String(s['Code'] || '').trim();
+    const nameRaw = String(s['Subject'] || '').trim();
+    const code = normalize(codeRaw);
+    const name = normalize(nameRaw);
+
+    if (!code && !name) return false;
+    if (isGradeLikeToken(code) || isGradeLikeToken(name)) return false;
+
+    // Reject legend rows like "A+", "B", etc. that leak into parsed subjects.
+    if (code && !name && code.length <= 3) return false;
+    if (name && !code && name.length <= 3) return false;
+
+    // Prefer rows that look like actual courses (code with digits or longer subject names).
+    const codeLooksCourse = /\d/.test(codeRaw) || codeRaw.length >= 5;
+    const nameLooksCourse = nameRaw.length >= 6;
+    return codeLooksCourse || nameLooksCourse;
+  };
   const subjectKey = (s) => {
     const code = normalize(s['Code']);
     const name = normalize(s['Subject']);
@@ -332,12 +355,13 @@ function generateExcel(results, examTitle) {
   const subjectMap = new Map();
   for (const r of results) {
     for (const s of (r['Subjects'] || [])) {
+      if (!isRealSubjectEntry(s)) continue;
       const key = subjectKey(s);
       if (!key) continue;
       if (!subjectMap.has(key)) {
         const code = String(s['Code'] || '').trim();
         const name = String(s['Subject'] || '').trim();
-        const label = code && name ? `${code} - ${name}` : (code || name || key);
+        const label = name || code || key;
         subjectMap.set(key, { key, label });
       }
     }
@@ -465,6 +489,7 @@ function generateExcel(results, examTitle) {
     // Subject grades
     const studentSubs = {};
     for (const s of (result['Subjects'] || [])) {
+      if (!isRealSubjectEntry(s)) continue;
       const k = subjectKey(s);
       if (k) studentSubs[k] = s;
     }
