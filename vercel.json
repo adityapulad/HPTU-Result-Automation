@@ -1,7 +1,10 @@
 {
   "version": 2,
   "functions": {
-    "api/*.py": {
+    "api/links.py": {
+      "maxDuration": 10
+    },
+    "api/result.py": {
       "maxDuration": 10
     }
   }
