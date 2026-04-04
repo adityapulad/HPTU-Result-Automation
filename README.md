@@ -2,7 +2,7 @@
 
 A web app that lets students fetch B.Tech exam results from the HPTU portal and download them as a styled Excel file — no installs needed.
 
-**Live App:** [your-app.vercel.app](https://result-exporter.vercel.app/)
+**Live App:** [my-app](https://result-exporter.vercel.app/)
 
 ---
 
