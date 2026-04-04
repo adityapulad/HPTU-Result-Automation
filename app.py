@@ -518,6 +518,26 @@ def get_links():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/result", methods=["POST"])
+def get_result():
+    try:
+        data = request.get_json(silent=True) or {}
+        query_url = data.get("url", "")
+        roll_no = data.get("roll_no", "")
+
+        if not query_url or not roll_no:
+            return jsonify({"success": False, "error": "Missing url or roll_no"}), 400
+
+        session = requests.Session()
+        tokens = get_session_tokens(session, query_url)
+        html = fetch_result(session, roll_no, tokens, query_url)
+        result = parse_result(html, roll_no)
+
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/start", methods=["POST"])
 def start_job():
     data = request.json
