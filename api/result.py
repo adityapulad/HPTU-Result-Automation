@@ -7,6 +7,7 @@ Body: { "url": "https://...query.aspx?id=...", "roll_no": "240505010001" }
 from http.server import BaseHTTPRequestHandler
 import json
 import re
+from typing import Any, Dict, Optional
 import requests
 from bs4 import BeautifulSoup
 
@@ -16,7 +17,7 @@ HEADERS = {
 }
 
 
-def get_result_for_roll(query_url: str, roll_no: str) -> dict | None:
+def get_result_for_roll(query_url: str, roll_no: str) -> Optional[Dict[str, Any]]:
     """Fetch tokens and result for a single roll number."""
     session = requests.Session()
 
@@ -47,7 +48,7 @@ def get_result_for_roll(query_url: str, roll_no: str) -> dict | None:
     return parse_result(resp.text, roll_no)
 
 
-def parse_result(html: str, roll_no: str) -> dict | None:
+def parse_result(html: str, roll_no: str) -> Optional[Dict[str, Any]]:
     """Parse the result page HTML and extract student data."""
     soup = BeautifulSoup(html, "html.parser")
     page_text = soup.get_text()
