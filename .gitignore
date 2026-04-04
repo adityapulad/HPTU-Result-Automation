@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+
+# Local development
+debug_*.html
+debug_*.txt
+debug_*.py
+sample_result.html
+HPTU_Results_*.xlsx
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
