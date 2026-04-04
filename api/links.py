@@ -5,8 +5,6 @@ Fetches all B.Tech result links from the HPTU portal.
 
 from http.server import BaseHTTPRequestHandler
 import json
-import requests
-from bs4 import BeautifulSoup
 
 LISTING_URL = "https://himachal-pradesh.indiaresults.com/himtu/default.aspx"
 BTECH_KEYWORDS = ["b.tech", "btech", "b tech"]
@@ -23,6 +21,9 @@ def is_btech(title: str) -> bool:
 
 
 def fetch_btech_links():
+    import requests
+    from bs4 import BeautifulSoup
+
     resp = requests.get(LISTING_URL, headers=HEADERS, timeout=12)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")

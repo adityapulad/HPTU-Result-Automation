@@ -8,8 +8,6 @@ from http.server import BaseHTTPRequestHandler
 import json
 import re
 from typing import Any, Dict, Optional
-import requests
-from bs4 import BeautifulSoup
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -19,6 +17,9 @@ HEADERS = {
 
 def get_result_for_roll(query_url: str, roll_no: str) -> Optional[Dict[str, Any]]:
     """Fetch tokens and result for a single roll number."""
+    import requests
+    from bs4 import BeautifulSoup
+
     session = requests.Session()
 
     # Step 1: GET the query page to grab ASP.NET session tokens
@@ -50,6 +51,8 @@ def get_result_for_roll(query_url: str, roll_no: str) -> Optional[Dict[str, Any]
 
 def parse_result(html: str, roll_no: str) -> Optional[Dict[str, Any]]:
     """Parse the result page HTML and extract student data."""
+    from bs4 import BeautifulSoup
+
     soup = BeautifulSoup(html, "html.parser")
     page_text = soup.get_text()
 
