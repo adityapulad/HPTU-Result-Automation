@@ -1,23 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "api/links.py": {
-      "runtime": "vercel-python@4.x",
-      "maxDuration": 10
-    },
-    "api/result.py": {
-      "runtime": "vercel-python@4.x",
+    "api/*.py": {
       "maxDuration": 10
     }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
-      ]
-    }
-  ]
+  }
 }
+
