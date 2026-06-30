@@ -59,6 +59,3 @@ A web app that lets students fetch B.Tech exam results from the HPTU portal and 
 
 ---
 
-## License
-
-MIT
