@@ -56,6 +56,18 @@ A web app that lets students fetch B.Tech exam results from the HPTU portal and 
 ## Notes
 - **Max 500 rolls** per run to prevent abuse.
 - Results are fetched from the live HPTU portal — they reflect the official data.
+- **Exam not in the list?** Paste its `query.aspx?id=...` link into the "Paste the result link" box in Step 1.
+
+## Command-line scraper
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Defaults to B.Tech CSE (AI-DS) 4th Sem, May 2026 (id=1800266992)
+.venv/bin/python scrape_results.py
+# Any exam / roll range
+.venv/bin/python scrape_results.py --url "https://himturesult.indiaresults.com/hp/himtu/hp-himtu/query.aspx?id=1800266992" \
+    --start 240505010001 --end 240505010075 --skip 240505010043 --extra 240501010267 --out results.xlsx
+```
 
 ---
 

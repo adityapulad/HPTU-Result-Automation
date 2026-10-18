@@ -1,11 +1,18 @@
 """
 HPTU Result Scraper
-Scrapes B.TECH CSE (AI-DS) 3rd Semester Results from HPTU portal
+Scrapes B.TECH CSE (AI-DS) 4th Semester Results (May 2026) from HPTU portal
 and compiles them into an Excel spreadsheet.
 
-Roll Numbers: 240505010005 to 240505010075 (excluding 240505010043)
+Default Roll Numbers: 240505010001 to 240505010075 (+ extras)
+
+Usage:
+    python scrape_results.py
+    python scrape_results.py --url "https://...query.aspx?id=..." --start 240505010001 --end 240505010075
+    python scrape_results.py --skip 240505010043 --extra 240501010267 240507010176
 """
 
+import argparse
+import re
 import requests
 from bs4 import BeautifulSoup
 import openpyxl
@@ -13,21 +20,24 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 import time
 import sys
 
-# Configuration
+from api.result import _parse_structured
+
+# Configuration (defaults; override via CLI flags)
 BASE_URL = "https://himturesult.indiaresults.com/hp/himtu/hp-himtu"
-QUERY_URL = f"{BASE_URL}/query.aspx?id=1800266771"
+QUERY_URL = f"{BASE_URL}/query.aspx?id=1800266992"
 RESULT_URL = f"{BASE_URL}/result.aspx"
 
 START_ROLL = 240505010001
 END_ROLL = 240505010075
-SKIP_ROLLS = {240505010043}
+SKIP_ROLLS = set()
 
 EXTRA_ROLLS = [
     240501010267, 
     240507010176
 ] + list(range(2520505001, 2520505007))
 
-OUTPUT_FILE = "HPTU_Results_CSE_AIDS_3rd_Sem.xlsx"
+OUTPUT_FILE = "HPTU_Results_CSE_AIDS_4th_Sem.xlsx"
+EXAM_TITLE = "B.TECH CSE (AI-DS) 4th SEMESTER REGULAR & RE-APPEAR (NEP) - SESSION MAY 2026"
 
 
 def get_session_tokens(session):
@@ -46,7 +56,7 @@ def get_session_tokens(session):
     if viewstate_gen:
         tokens["__VIEWSTATEGENERATOR"] = viewstate_gen.get("value", "")
     if hidden_id:
-        tokens["id"] = hidden_id.get("value", "1800266771")
+        tokens["id"] = hidden_id.get("value", "")
 
     return tokens
 
@@ -58,7 +68,7 @@ def fetch_result(session, roll_no, tokens):
         "__VIEWSTATEGENERATOR": tokens.get("__VIEWSTATEGENERATOR", ""),
         "RollNo": str(roll_no),
         "txtName": "",
-        "id": tokens.get("id", "1800266771")
+        "id": tokens.get("id", "")
     }
 
     headers = {
@@ -80,6 +90,11 @@ def parse_result(html, roll_no):
     if "Roll No Not Exist" in page_text or "not found" in page_text.lower():
         return None
 
+    structured = _parse_structured(html, roll_no)
+    if structured:
+        return structured
+
+    # Fallback: generic heuristic parsing for unknown layouts
     result = {"Roll No": str(roll_no)}
 
     # Extract personal details from the result page
@@ -231,7 +246,7 @@ def create_excel(all_results):
     """Create a styled Excel workbook from the results."""
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "CSE AI-DS 3rd Sem Results"
+    ws.title = re.sub(r'[\\/*?:\[\]]', '', EXAM_TITLE)[:31] or "Results"
 
     # Collect all unique subjects across all students
     all_subjects = []
@@ -262,7 +277,7 @@ def create_excel(all_results):
     # Title row
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=6 + len(all_subjects))
     title_cell = ws.cell(row=1, column=1)
-    title_cell.value = "HIMACHAL PRADESH TECHNICAL UNIVERSITY\nB.TECH CSE (AI-DS) 3rd SEMESTER REGULAR (NEP) - SESSION DEC 2025"
+    title_cell.value = f"HIMACHAL PRADESH TECHNICAL UNIVERSITY\n{EXAM_TITLE.upper()}"
     title_cell.font = Font(name="Calibri", bold=True, size=14, color="1F3864")
     title_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     ws.row_dimensions[1].height = 45
@@ -382,13 +397,44 @@ def create_excel(all_results):
     print(f"{'='*60}")
 
 
+def parse_args():
+    global QUERY_URL, RESULT_URL, OUTPUT_FILE
+    p = argparse.ArgumentParser(description="HPTU bulk result scraper -> Excel")
+    p.add_argument("--url", default=QUERY_URL, help="query.aspx result URL")
+    p.add_argument("--start", type=int, default=START_ROLL, help="first roll number")
+    p.add_argument("--end", type=int, default=END_ROLL, help="last roll number")
+    p.add_argument("--skip", type=int, nargs="*", default=sorted(SKIP_ROLLS), help="roll numbers to skip")
+    p.add_argument("--extra", type=int, nargs="*", default=EXTRA_ROLLS, help="additional roll numbers")
+    p.add_argument("--out", default=OUTPUT_FILE, help="output .xlsx file")
+    args = p.parse_args()
+    QUERY_URL = args.url
+    RESULT_URL = args.url.split("?")[0].replace("query.aspx", "result.aspx")
+    OUTPUT_FILE = args.out
+    return args
+
+
+def detect_exam_title(session):
+    """Read the exam name from the query page <title> (e.g. 'HIMTU: B. Tech ...')."""
+    global EXAM_TITLE
+    try:
+        soup = BeautifulSoup(session.get(QUERY_URL, timeout=15).text, "html.parser")
+        title = soup.title.get_text(strip=True) if soup.title else ""
+        title = re.sub(r"^\s*HIMTU\s*:\s*", "", title)
+        if title:
+            EXAM_TITLE = title
+    except Exception:
+        pass
+
+
 def main():
+    args = parse_args()
+    session = requests.Session()
+    detect_exam_title(session)
+
     print("=" * 60)
     print("  HPTU Result Scraper")
-    print("  B.TECH CSE (AI-DS) 3rd Semester - Dec 2025")
+    print(f"  {EXAM_TITLE}")
     print("=" * 60)
-
-    session = requests.Session()
 
     # Step 1: Get session tokens
     print("\n[*] Fetching session tokens...")
@@ -404,8 +450,9 @@ def main():
     not_found_rolls = []
 
     # Build the full list of roll numbers to process
-    rolls_to_process = [r for r in range(START_ROLL, END_ROLL + 1) if r not in SKIP_ROLLS]
-    rolls_to_process.extend(EXTRA_ROLLS)
+    skip = set(args.skip or [])
+    rolls_to_process = [r for r in range(args.start, args.end + 1) if r not in skip]
+    rolls_to_process.extend(r for r in (args.extra or []) if r not in skip and r not in rolls_to_process)
     
     total = len(rolls_to_process)
     current = 0

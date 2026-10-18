@@ -18,6 +18,8 @@ import threading
 import uuid
 from datetime import datetime
 
+from api.result import _parse_structured
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
@@ -121,6 +123,11 @@ def parse_result(html, roll_no):
     if "Roll No Not Exist" in page_text or "not found" in page_text.lower():
         return None
 
+    structured = _parse_structured(html, roll_no)
+    if structured:
+        return structured
+
+    # Fallback: generic heuristic parsing for unknown layouts
     result = {"Roll No": str(roll_no)}
 
     all_text = soup.get_text(separator="\n")

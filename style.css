@@ -263,6 +263,27 @@ body {
 }
 .search-box input::placeholder { color: var(--text-faint); }
 
+/* ─── Custom Link ───────────────────────────────────────────────────────────── */
+.custom-link {
+  margin: -4px 0 18px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.04);
+  transition: border-color 0.2s ease;
+}
+.custom-link:focus-within { border-color: var(--accent); }
+.custom-link-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.custom-link-row { display: flex; gap: 10px; align-items: stretch; }
+.custom-link-input { flex: 1; margin-bottom: 0; }
+@media (max-width: 600px) {
+  .custom-link-row { flex-direction: column; }
+}
+
 /* ─── Links Grid ────────────────────────────────────────────────────────────── */
 .links-grid {
   display: flex;

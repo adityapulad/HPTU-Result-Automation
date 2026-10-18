@@ -49,6 +49,80 @@ def get_result_for_roll(query_url: str, roll_no: str) -> Optional[Dict[str, Any]
     return parse_result(resp.text, roll_no)
 
 
+# ── Structured parser for the indiaresults.com HPTU layout ────────────────────
+# Each subject row looks like:
+#   <td class="border1 NB_left">Subject Name&nbsp;<td ...><table ...><tr>
+#     <td class="border1">CODE</td><td class="border1">CREDIT</td><td class="border1">GRADE</td>
+# Personal/final rows look like:
+#   <td class="border1 NB_left">Label&nbsp;<td class="border1"> VALUE&nbsp;</td>
+# The <td> tags are left unclosed, which confuses generic table parsing.
+
+_SUBJECT_RE = re.compile(
+    r'class="[^"]*NB_left[^"]*"[^>]*>\s*([^<]+?)\s*<td[^>]*>\s*<table[^>]*>\s*<tr[^>]*>\s*'
+    r'<td[^>]*>\s*([^<]*?)\s*</td>\s*'
+    r'<td[^>]*>\s*([^<]*?)\s*</td>\s*'
+    r'<td[^>]*>\s*([^<]*?)\s*</td>',
+    re.IGNORECASE,
+)
+_FIELD_RE = re.compile(
+    r'class="[^"]*NB_left[^"]*"[^>]*>\s*([^<]+?)\s*<td[^>]*class="border1"[^>]*>\s*([^<]*?)\s*</td>',
+    re.IGNORECASE,
+)
+_EXAM_RE = re.compile(r'id="lblExamName"[^>]*>\s*([^<]+?)\s*</span>', re.IGNORECASE)
+
+
+def _clean(text: str) -> str:
+    import html as _html
+    return _html.unescape(text).replace("\xa0", " ").strip()
+
+
+def _parse_structured(html: str, roll_no: str) -> Optional[Dict[str, Any]]:
+    """Parse the known HPTU layout. Returns None if the layout isn't recognised."""
+    subjects = []
+    seen = set()
+    for name, code, credit, grade in _SUBJECT_RE.findall(html):
+        name, code, credit, grade = map(_clean, (name, code, credit, grade))
+        if not code or code.lower() == "subject code":
+            continue
+        key = code or name
+        if key in seen:
+            continue
+        seen.add(key)
+        subjects.append({"Subject": name, "Code": code, "Credit": credit, "Grade": grade})
+
+    if not subjects:
+        return None
+
+    fields = {}
+    for label, value in _FIELD_RE.findall(html):
+        label, value = _clean(label).rstrip(".:").strip().lower(), _clean(value)
+        fields.setdefault(label, value)
+
+    result: Dict[str, Any] = {"Roll No": fields.get("roll no") or str(roll_no)}
+    if "student name" in fields:
+        result["Student Name"] = fields["student name"]
+    if "father's name" in fields:
+        result["Father's Name"] = fields["father's name"]
+    result["Subjects"] = subjects
+    exam = _EXAM_RE.search(html)
+    if exam:
+        result["Exam"] = _clean(exam.group(1))
+    for src, dst in (("sgpa", "SGPA"), ("cgpa", "CGPA"), ("result", "Result")):
+        if fields.get(src):
+            result[dst] = fields[src]
+
+    # For students with back papers the portal lists the subject codes in the
+    # Result field (e.g. "ECEPC-412  ,") instead of a status word.
+    status = result.get("Result", "")
+    known = {"PASS", "FAIL", "RE-APPEAR", "REAPPEAR", "ABSENT", "COMP", "RLE", "UFM"}
+    if status and status.upper() not in known:
+        codes = [c.strip() for c in status.split(",") if c.strip()]
+        if codes:
+            result["Reappear In"] = ", ".join(codes)
+            result["Result"] = "RE-APPEAR"
+    return result
+
+
 def parse_result(html: str, roll_no: str) -> Optional[Dict[str, Any]]:
     """Parse the result page HTML and extract student data."""
     from bs4 import BeautifulSoup
@@ -59,6 +133,11 @@ def parse_result(html: str, roll_no: str) -> Optional[Dict[str, Any]]:
     if "Roll No Not Exist" in page_text or "not found" in page_text.lower():
         return None
 
+    structured = _parse_structured(html, roll_no)
+    if structured:
+        return structured
+
+    # Fallback: generic heuristic parsing for unknown layouts
     result = {"Roll No": str(roll_no)}
     all_text = soup.get_text(separator="\n")
     lines = [line.strip() for line in all_text.split("\n") if line.strip()]

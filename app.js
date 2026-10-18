@@ -113,6 +113,39 @@ function clearSelection() {
   document.getElementById('step2').style.pointerEvents = 'none';
 }
 
+// ─── Custom (unlisted) result link ────────────────────────────────────────────
+function useCustomLink() {
+  const raw = document.getElementById('customUrlInput').value.trim();
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    showToast('Please paste a valid result link', 'error');
+    return;
+  }
+  // Mobile links (mquery.aspx) use the same backend as query.aspx
+  url.pathname = url.pathname.replace(/mquery\.aspx$/i, 'query.aspx');
+  const id = url.searchParams.get('id');
+  if (!/query\.aspx$/i.test(url.pathname) || !id) {
+    showToast('Link must look like …/query.aspx?id=XXXXXXXXXX', 'error');
+    return;
+  }
+
+  const normalized = url.toString();
+  const listed = allLinks.find(l => l.url.includes(`id=${id}`));
+  selectedLink = listed
+    ? listed
+    : { title: `HPTU Result (id ${id})`, url: normalized, custom: true };
+
+  document.getElementById('selectedTitle').textContent = selectedLink.title;
+  show('selectedExam');
+  hide('linksList');
+  const step2 = document.getElementById('step2');
+  step2.style.opacity = '1';
+  step2.style.pointerEvents = 'all';
+  showToast('Custom link selected ✓', 'success');
+}
+
 // ─── Roll Number Inputs ────────────────────────────────────────────────────────
 function setupRollInputs() {
   ['startRoll', 'endRoll', 'skipRolls'].forEach(id => {
@@ -210,6 +243,13 @@ async function startScraping() {
 
       if (data.success && data.result) {
         scrapedResults.push(data.result);
+        // Pasted links have no title yet: take it from the result page
+        if (selectedLink.custom && data.result['Exam']) {
+          selectedLink.title = data.result['Exam'];
+          selectedLink.custom = false;
+          document.getElementById('selectedTitle').textContent = selectedLink.title;
+          document.getElementById('progressDesc').textContent = selectedLink.title;
+        }
         document.getElementById('statFound').textContent = scrapedResults.length;
         addLogEntry(roll, data.result, 'found');
       } else {

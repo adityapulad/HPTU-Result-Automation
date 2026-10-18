@@ -63,6 +63,17 @@
         <input type="text" id="searchInput" placeholder="Search exam (e.g. CSE, 7th Semester, NEP...)" oninput="filterLinks()" />
       </div>
 
+      <div class="custom-link">
+        <div class="custom-link-label">Not in the list? Paste the result link directly</div>
+        <div class="custom-link-row">
+          <div class="search-box custom-link-input">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <input type="url" id="customUrlInput" class="mono-input" placeholder="https://himturesult.indiaresults.com/hp/himtu/hp-himtu/query.aspx?id=1800266992" onkeydown="if(event.key==='Enter') useCustomLink()" />
+          </div>
+          <button class="btn btn-primary" id="useCustomLinkBtn" onclick="useCustomLink()">Use Link</button>
+        </div>
+      </div>
+
       <div id="linksLoading" class="loading-state hidden">
         <div class="spinner"></div>
         <p>Fetching B.Tech result links from HPTU portal...</p>
